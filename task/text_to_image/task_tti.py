@@ -38,20 +38,47 @@ class Quality:
 async def _save_images(attachments: list[Attachment]):
     # TODO:
     #  1. Create DIAL bucket client
-    #  2. Iterate through Images from attachments, download them and then save here
-    #  3. Print confirmation that image has been saved locally
-    raise NotImplementedError
+    async with DialBucketClient(api_key=API_KEY, base_url=DIAL_URL) as client:
+        #  2. Iterate through Images from attachments, download them and then save here
+        for attachment in attachments:
+            file_content = await client.get_file(url=attachment.url)
+            file_name = f'{attachment.title}.{attachment.type.split('/')[-1]}'
+            with open(file_name, 'wb') as file:
+                file.write(file_content)
+            #  3. Print confirmation that image has been saved locally
+            print('File received: ', file_content)
+
+
+models = [
+    # 'gpt-4o',
+    # 'gemini-2.0-flash-lite',
+    # 'anthropic.claude-v3-haiku',
+    'imagegeneration@005',
+]
 
 
 def start() -> None:
-    # TODO:
+    model_name = models[0]
+
+    user_input = input('User says: ')
+
+    custom_fields = {   # FIXME: raises error extra is not allowed
+        # 'size': Size.width_rectangle,
+        # 'style': Style.natural,
+        # 'quality': Quality.hd,
+    }
+    
     #  1. Create DialModelClient
+    client = DialModelClient(endpoint=DIAL_CHAT_COMPLETIONS_ENDPOINT, api_key=API_KEY, deployment_name=model_name)
     #  2. Generate image for "Sunny day on Bali"
+    response = client.get_completion(messages=[Message(role=Role.USER, content=user_input or 'Sunny day on Bali')], custom_fields=custom_fields)
+    attachments = response.custom_content.attachments
+    print(attachments)
     #  3. Get attachments from response and save generated message (use method `_save_images`)
+    asyncio.run(_save_images(attachments=attachments))
     #  4. Try to configure the picture for output via `custom_fields` parameter.
     #    - Documentation: See `custom_fields`. https://dialx.ai/dial_api#operation/sendChatCompletionRequest
     #  5. Test it with the 'imagegeneration@005' (Google image generation model)
-    raise NotImplementedError
 
 
 start()
